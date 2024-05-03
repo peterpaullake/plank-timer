@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plank Timer</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f1f1f1;
+  }
+
+  .container {
+    text-align: center;
+  }
+
+  #timer {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
+
+  input {
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    font-size: 1rem;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+
+  button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background-color: #45a049;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <input type="number" id="plankDuration" placeholder="Plank Duration (in seconds)">
+  <input type="number" id="numPlanks" placeholder="Number of Planks">
+  <div id="timer">00:00</div>
+  <button onclick="startTimer()">Start</button>
+</div>
+
+<script>
+  let timer;
+  let timeRemaining;
+  let plankDuration = 30; // Default plank duration in seconds
+  let numPlanks = 5; // Default number of planks
+  let currentPlank = 1;
+  let wakeLock = null;
+
+  async function startTimer() {
+    // Request screen wake lock
+    try {
+      wakeLock = await navigator.wakeLock.request("screen");
+    } catch (err) {
+      console.error(`${err.name}, ${err.message}`);
+    }
+
+    plankDuration = parseInt(document.getElementById("plankDuration").value) || 30;
+    numPlanks = parseInt(document.getElementById("numPlanks").value) || 5;
+
+    timeRemaining = plankDuration;
+    updateTimerDisplay();
+
+    timer = setInterval(function() {
+      if (timeRemaining > 0) {
+        timeRemaining--;
+        updateTimerDisplay();
+      } else {
+        if (currentPlank < numPlanks) {
+          currentPlank++;
+          timeRemaining = plankDuration;
+          updateTimerDisplay();
+        } else {
+          clearInterval(timer);
+          document.getElementById("timer").innerHTML = "Plank Complete!";
+        }
+      }
+    }, 1000);
+  }
+
+  function updateTimerDisplay() {
+    let minutes = Math.floor(timeRemaining / 60);
+    let seconds = timeRemaining % 60;
+    document.getElementById("timer").innerHTML = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} (${currentPlank}/${numPlanks})`;
+  }
+</script>
+
+</body>
+</html>
