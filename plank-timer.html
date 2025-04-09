@@ -116,19 +116,19 @@
   transform: translate(-50%, var(--y));
   width: var(--initialSize);
   aspect-ratio: 1;
-  background: 
+  background:
     /*
     radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 0% 0%,
     radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 100% 0%,
     radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 100% 100%,
     radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 0% 100%,
     */
-    
+
     radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 50% 0%,
     radial-gradient(circle, var(--color2) var(--particleSize), #0000 0) 100% 50%,
     radial-gradient(circle, var(--color3) var(--particleSize), #0000 0) 50% 100%,
     radial-gradient(circle, var(--color4) var(--particleSize), #0000 0) 0% 50%,
-    
+
     /* bottom right */
     radial-gradient(circle, var(--color5) var(--particleSize), #0000 0) 80% 90%,
     radial-gradient(circle, var(--color6) var(--particleSize), #0000 0) 95% 90%,
@@ -136,7 +136,7 @@
     radial-gradient(circle, var(--color2) var(--particleSize), #0000 0) 100% 60%,
     radial-gradient(circle, var(--color3) var(--particleSize), #0000 0) 55% 80%,
     radial-gradient(circle, var(--color4) var(--particleSize), #0000 0) 70% 77%,
-    
+
     /* bottom left */
     radial-gradient(circle, var(--color5) var(--particleSize), #0000 0) 22% 90%,
     radial-gradient(circle, var(--color6) var(--particleSize), #0000 0) 45% 90%,
@@ -145,7 +145,7 @@
     radial-gradient(circle, var(--color3) var(--particleSize), #0000 0) 31% 80%,
     radial-gradient(circle, var(--color4) var(--particleSize), #0000 0) 28% 77%,
     radial-gradient(circle, var(--color5) var(--particleSize), #0000 0) 13% 72%,
-    
+
     /* top left */
     radial-gradient(circle, var(--color6) var(--particleSize), #0000 0) 80% 10%,
     radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 95% 14%,
@@ -154,7 +154,7 @@
     radial-gradient(circle, var(--color4) var(--particleSize), #0000 0) 85% 27%,
     radial-gradient(circle, var(--color5) var(--particleSize), #0000 0) 77% 37%,
     radial-gradient(circle, var(--color6) var(--particleSize), #0000 0) 60% 7%,
-    
+
     /* top right */
     radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 22% 14%,
     radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 45% 20%,
@@ -172,18 +172,18 @@
   --x: -50%;
   --y: -50%;
   --initialY: -50%;
-/*   transform: translate(-20vmin, -2vmin) rotate(40deg) scale(1.3) rotateY(40deg); */
+/* transform: translate(-20vmin, -2vmin) rotate(40deg) scale(1.3) rotateY(40deg); */
   transform: translate(-50%, -50%) rotate(40deg) scale(1.3) rotateY(40deg);
-/*   animation: fireworkPseudo 2s infinite; */
+/* animation: fireworkPseudo 2s infinite; */
 }
 
 .firework::after {
   --x: -50%;
   --y: -50%;
   --initialY: -50%;
-/*   transform: translate(44vmin, -50%) rotate(170deg) scale(1.15) rotateY(-30deg); */
+/* transform: translate(44vmin, -50%) rotate(170deg) scale(1.15) rotateY(-30deg); */
   transform: translate(-50%, -50%) rotate(170deg) scale(1.15) rotateY(-30deg);
-/*   animation: fireworkPseudo 2s infinite; */
+/* animation: fireworkPseudo 2s infinite; */
 }
 
 .firework:nth-child(2) {
@@ -198,7 +198,7 @@
   --color3: fuchsia;
   --color4: orchid;
   --color5: plum;
-  --color6: lavender;  
+  --color6: lavender;
   --finalSize: 40vmin;
   left: 30%;
   top: 60%;
@@ -262,16 +262,28 @@
   let timeRemaining;
   let currentPlank = 1;
   let timerinterval;
+  let wakeLock = null;
 
-  const lockScreen = async () => {
-    // Request screen wake lock
+  const requestWakeLock = async () => {
     try {
-      await navigator.wakeLock.request("screen");
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => {
+        console.log('Screen Wake Lock released:', wakeLock.released);
+      });
+      console.log('Screen Wake Lock acquired:', wakeLock.released);
     } catch (err) {
-      console.error(`${err.name}, ${err.message}`);
+      console.error(`Failed to acquire wake lock: ${err.name}, ${err.message}`);
     }
   };
-  
+
+  const releaseWakeLock = async () => {
+    if (wakeLock) {
+      await wakeLock.release();
+      wakeLock = null;
+    }
+    console.log('Screen Wake Lock released (manually)');
+  };
+
   const resetTimer = () => {
     timeRemaining = 0;
     currentPlank = 1;
@@ -279,12 +291,13 @@
     document.getElementById('dialogbox').style.display = 'none';
     document.getElementById('startbutton').textContent = 'start';
     document.getElementById('timer').textContent = '00:00';
+    releaseWakeLock(); // Release wake lock when timer is reset
   };
   const startTimer = () => {
     if(document.getElementById('startbutton').textContent === 'cancel') {
-        const dialogbox = document.getElementById('dialogbox'); 
-        dialogbox.style.display = 'flex';
-        return;
+      const dialogbox = document.getElementById('dialogbox');
+      dialogbox.style.display = 'flex';
+      return;
     }
 
     const updateTimerDisplay = () => {
@@ -298,8 +311,9 @@
 
     timeRemaining = plankDuration;
     updateTimerDisplay();
-    
+
     document.getElementById('startbutton').textContent = 'cancel';
+    requestWakeLock(); // Request wake lock when timer starts
     timerinterval = setInterval(() => {
       if (timeRemaining > 0) {
         timeRemaining--;
@@ -312,17 +326,20 @@
         } else {
           clearInterval(timerinterval);
           document.getElementById('complete').style.display = 'flex';
+          releaseWakeLock(); // Release wake lock when all planks are complete
         }
       }
     }, 1000);
   }
 
-  window.addEventListener('load',lockScreen);
+  window.addEventListener('load', () => {
+    console.log('Page loaded');
+  });
   document.getElementById('startbutton').addEventListener('click',startTimer);
   document.getElementById('complete').addEventListener('click', () => {document.getElementById('complete').style.display = 'none'; resetTimer();});
   document.getElementById('nomore').addEventListener('click',resetTimer);
   document.getElementById('no').addEventListener('click',() => document.getElementById('dialogbox').style.display = 'none');
-  
+
 </script>
 
 </body>
