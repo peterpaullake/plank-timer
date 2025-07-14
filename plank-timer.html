@@ -238,6 +238,10 @@
           <input type="number" id="numPlanks" placeholder="Number of Planks" value="100">
           <label for="numPlanks">planks</label>
       </div>
+      <div class="inputbox">
+          <input type="checkbox" id="lowLatency" style="margin-left: 13.5rem">
+          <label for="lowLatency">low latency</label>
+      </div>
   </div>
   <div id="timer">00:00</div>
   <button id="startbutton">start</button>
@@ -259,9 +263,6 @@
 </div>
 <script>
 
-  let timeRemaining;
-  let currentPlank = 1;
-  let timerinterval;
   let wakeLock = null;
 
   const requestWakeLock = async () => {
@@ -283,16 +284,31 @@
     }
     console.log('Screen Wake Lock released (manually)');
   };
+    
+  const _state = {
+      timeRemaining: 0,
+      currentPlank: 1,
+      numPlanks: 0,
+      timerinterval: null,
+      stopnow: false
+  }
 
   const resetTimer = () => {
-    timeRemaining = 0;
-    currentPlank = 1;
-    clearInterval(timerinterval);
+    _state.timeRemaining = 0;
+    _state.currentPlank = 1;
+    clearInterval(_state.timerinterval);
+    _state.stopnow = true;
     document.getElementById('dialogbox').style.display = 'none';
     document.getElementById('startbutton').textContent = 'start';
     document.getElementById('timer').textContent = '00:00';
     releaseWakeLock(); // Release wake lock when timer is reset
   };
+  const updateTimerDisplay = () => {
+      let minutes = Math.floor(_state.timeRemaining / 60);
+      let seconds = _state.timeRemaining % 60;
+      document.getElementById("timer").innerHTML = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} (${_state.currentPlank}/${_state.numPlanks})`;
+  };
+
   const startTimer = () => {
     if(document.getElementById('startbutton').textContent === 'cancel') {
       const dialogbox = document.getElementById('dialogbox');
@@ -300,37 +316,78 @@
       return;
     }
 
-    const updateTimerDisplay = () => {
-        let minutes = Math.floor(timeRemaining / 60);
-        let seconds = timeRemaining % 60;
-        document.getElementById("timer").innerHTML = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} (${currentPlank}/${numPlanks})`;
-    }
+    _state.plankDuration = parseInt(document.getElementById("plankDuration").value);
+    _state.numPlanks = parseInt(document.getElementById("numPlanks").value);
 
-    const plankDuration = parseInt(document.getElementById("plankDuration").value);
-    const numPlanks = parseInt(document.getElementById("numPlanks").value);
-
-    timeRemaining = plankDuration;
+    _state.timeRemaining = _state.plankDuration;
     updateTimerDisplay();
 
     document.getElementById('startbutton').textContent = 'cancel';
     requestWakeLock(); // Request wake lock when timer starts
-    timerinterval = setInterval(() => {
-      if (timeRemaining > 0) {
-        timeRemaining--;
+    
+    if(document.getElementById('lowLatency').checked)
+        lowLatencyTimer();
+    else
+        highLatencyTimer();
+
+  };
+  
+  const highLatencyTimer = () => {
+    _state.timerinterval = setInterval(() => {
+      if (_state.timeRemaining > 0) {
+        _state.timeRemaining--;
         updateTimerDisplay();
       } else {
-        if (currentPlank < numPlanks) {
-          currentPlank++;
-          timeRemaining = plankDuration;
+        if (_state.currentPlank < _state.numPlanks) {
+          _state.currentPlank++;
+          _state.timeRemaining = _state.plankDuration;
           updateTimerDisplay();
         } else {
-          clearInterval(timerinterval);
+          clearInterval(_state.timerinterval);
           document.getElementById('complete').style.display = 'flex';
           releaseWakeLock(); // Release wake lock when all planks are complete
         }
       }
     }, 1000);
-  }
+  };
+  const lowLatencyTimer = () => {
+    _state.stopnow = false;
+    let start;
+    let nexttick = 1000;
+    let end;
+    const timer = (timestamp) => {
+        if(_state.stopnow) return;
+        if(start === undefined) start = document.timeline.currentTime;
+        const elapsed = timestamp - start;
+        if(elapsed < nexttick) {
+            requestAnimationFrame(timer);
+            return;
+        }
+        
+        nexttick = 1000 - (elapsed - nexttick);
+        start = timestamp;
+
+        if(_state.timeRemaining === 1 && _state.currentPlank < _state.numPlanks) {
+          _state.currentPlank++;
+          _state.timeRemaining = _state.plankDuration;
+          updateTimerDisplay();
+          requestAnimationFrame(timer);
+          return;
+        }
+        if(_state.timeRemaining > 0) {
+          _state.timeRemaining--;
+          updateTimerDisplay();
+          if(_state.timeRemaining === 0) end = (new Date()).getTime();
+          requestAnimationFrame(timer);
+          return;
+        }
+
+        document.getElementById('complete').style.display = 'flex';
+        releaseWakeLock(); // Release wake lock when all planks are complete
+    }
+    requestAnimationFrame(timer);
+
+  };
 
   window.addEventListener('load', () => {
     console.log('Page loaded');
