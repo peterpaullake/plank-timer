@@ -31,6 +31,7 @@
     font-size: 1rem;
     border-radius: 5px;
     border: 1px solid #ccc;
+	height: min-content;
   }
 
   button {
@@ -48,16 +49,27 @@
   }
 
   .boxcontainer {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+	  grid-template-columns: repeat(2, 1fr);
+	  gap: 20px;
+	  margin-bottom: 2rem;
   }
-  .inputbox {
-      display: flex;
-      flex-direction: row;
+
+  .boxcontainer input {
+		grid-column: 1/2;
+		height: min-content;
+		justify-self: right;
   }
-  label {
-      line-height: 2.5rem;
-      margin-left: 1rem;
+  input[type="number"] {
+		width: 5rem;
+  }
+  .boxcontainer label {
+		grid-column: 2/2;
+		text-align: left;
+		align-self: center;
+  }
+  .boxcontainer label:last-child {
+		align-self: baseline;
   }
 #complete, #dialogbox {
     display: none;
@@ -230,18 +242,12 @@
 
 <div class="container">
   <div class="boxcontainer">
-      <div class="inputbox">
-          <input type="number" id="plankDuration" placeholder="Plank duration (in seconds)" value="30">
-          <label for="plankDuration">seconds each</label>
-      </div>
-      <div class="inputbox">
-          <input type="number" id="numPlanks" placeholder="Number of Planks" value="100">
-          <label for="numPlanks">planks</label>
-      </div>
-      <div class="inputbox">
-          <input type="checkbox" id="lowLatency" style="margin-left: 13.5rem">
-          <label for="lowLatency">low latency</label>
-      </div>
+	  <input type="number" id="plankDuration" placeholder="Plank duration (in seconds)" value="30">
+	  <label for="plankDuration">seconds each</label>
+	  <input type="number" id="numPlanks" placeholder="Number of Planks" value="100">
+	  <label for="numPlanks">planks</label>
+	  <input type="checkbox" id="lowLatency">
+	  <label for="lowLatency">low latency</label>
   </div>
   <div id="timer">00:00</div>
   <button id="startbutton">start</button>
